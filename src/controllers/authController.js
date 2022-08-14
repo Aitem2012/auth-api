@@ -1,5 +1,6 @@
 const User = require('../models/userModel');
 const bcrypt = require('bcrypt');
+const tokenService = require('../services/tokenService');
 
 const createUser = async (req, res) => {
   const { firstName, lastName, email, password } = req.body;
@@ -75,10 +76,32 @@ const deleteUser = async (req, res) => {
   res.status(200).send({ message: 'User deleted successfully' });
 };
 
+const login = async (req, res) => {
+  const user = await User.findOne({ email: req.body.email });
+  if (!user) {
+    return res.status(404).send({ message: 'User not found' });
+  }
+  const passwordMatch = await bcrypt.compare(req.body.password, user.password);
+  if (passwordMatch) {
+    const token = tokenService.generateToken(user);
+    return res.status(200).send({
+      message: 'Succesfful login',
+      data: {
+        token: token,
+        fullName: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+      },
+    });
+  } else {
+    return res.status(401).send('Incorrect username or password.');
+  }
+};
+
 module.exports = {
   createUser,
   getAllUsers,
   getUserById,
   updateUser,
   deleteUser,
+  login,
 };
